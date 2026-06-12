@@ -1,0 +1,187 @@
+/**
+ * boardUtils.js
+ * Utility functions for FlowBoard task management
+ */
+
+/**
+ * Creates a new board object with default columns
+ * @param {string} name - Board name
+ * @returns {Object} New board object
+ */
+export function createBoard(name) {
+  return {
+    id: `board_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    name,
+    createdAt: new Date().toISOString(),
+    columns: [
+      {
+        id: `col_${Date.now()}_1`,
+        title: 'Backlog',
+        order: 0,
+        tasks: []
+      },
+      {
+        id: `col_${Date.now()}_2`,
+        title: 'In Progress',
+        order: 1,
+        tasks: []
+      },
+      {
+        id: `col_${Date.now()}_3`,
+        title: 'Review',
+        order: 2,
+        tasks: []
+      },
+      {
+        id: `col_${Date.now()}_4`,
+        title: 'Done',
+        order: 3,
+        tasks: []
+      }
+    ]
+  };
+}
+
+/**
+ * Creates a new task object
+ * @param {string} title - Task title
+ * @param {string} columnId - Column ID where task will be placed
+ * @param {string} priority - Priority level: 'high', 'medium', or 'low'
+ * @returns {Object} New task object
+ */
+export function createTask(title, columnId, priority = 'medium') {
+  return {
+    id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    title,
+    columnId,
+    priority,
+    createdAt: new Date().toISOString(),
+    dueDate: null,
+    description: '',
+    labels: [],
+    assignee: null
+  };
+}
+
+/**
+ * Gets all overdue tasks from the board
+ * @param {Object} board - Board object
+ * @returns {Array} Array of overdue tasks
+ */
+export function getOverdueTasks(board) {
+  const now = new Date();
+  const overdueTasks = [];
+
+  board.columns.forEach(column => {
+    column.tasks.forEach(task => {
+      if (task.dueDate) {
+        const dueDate = new Date(task.dueDate);
+        if (dueDate < now && column.title !== 'Done') {
+          overdueTasks.push({
+            ...task,
+            columnTitle: column.title
+          });
+        }
+      }
+    });
+  });
+
+  return overdueTasks;
+}
+
+/**
+ * Calculates board statistics
+ * @param {Object} board - Board object
+ * @returns {Object} Statistics object
+ */
+export function getBoardStats(board) {
+  let total = 0;
+  const byPriority = {
+    high: 0,
+    medium: 0,
+    low: 0
+  };
+  let doneCount = 0;
+
+  const doneColumn = board.columns.find(col => col.title === 'Done');
+  
+  board.columns.forEach(column => {
+    column.tasks.forEach(task => {
+      total++;
+      
+      const priority = task.priority || 'medium';
+      if (byPriority.hasOwnProperty(priority)) {
+        byPriority[priority]++;
+      } else {
+        byPriority.medium++;
+      }
+    });
+    
+    if (column.title === 'Done') {
+      doneCount = column.tasks.length;
+    }
+  });
+
+  const percentDone = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+  const overdueTasks = getOverdueTasks(board);
+
+  return {
+    total,
+    byPriority: {
+      high: byPriority.high,
+      med: byPriority.medium,
+      low: byPriority.low
+    },
+    percentDone,
+    overdueCount: overdueTasks.length
+  };
+}
+
+/**
+ * Moves a task from one column to another (immutable update)
+ * @param {Object} board - Board object
+ * @param {string} taskId - Task ID to move
+ * @param {string} toColumnId - Target column ID
+ * @returns {Object} New board object with updated task position
+ */
+export function moveTask(board, taskId, toColumnId) {
+  let taskToMove = null;
+  let fromColumnId = null;
+
+  // Find the task and its current column
+  for (const column of board.columns) {
+    const taskIndex = column.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex !== -1) {
+      taskToMove = column.tasks[taskIndex];
+      fromColumnId = column.id;
+      break;
+    }
+  }
+
+  if (!taskToMove) {
+    return board; // Task not found, return unchanged board
+  }
+
+  // Create new board with updated columns
+  const newColumns = board.columns.map(column => {
+    if (column.id === fromColumnId) {
+      // Remove task from source column
+      return {
+        ...column,
+        tasks: column.tasks.filter(t => t.id !== taskId)
+      };
+    } else if (column.id === toColumnId) {
+      // Add task to target column
+      return {
+        ...column,
+        tasks: [...column.tasks, { ...taskToMove, columnId: toColumnId }]
+      };
+    }
+    return column;
+  });
+
+  return {
+    ...board,
+    columns: newColumns
+  };
+}
