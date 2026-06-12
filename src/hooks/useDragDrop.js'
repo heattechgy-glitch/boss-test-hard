@@ -1,0 +1,43 @@
+import { useState } from "react";
+
+export function useDragDrop(moveTask) {
+  const [draggingId, setDraggingId] = useState(null);
+
+  const dragHandlers = {
+    onDragStart: (e, taskId, columnId) => {
+      setDraggingId(taskId);
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("taskId", taskId);
+      e.dataTransfer.setData("sourceColumnId", columnId);
+      e.currentTarget.style.opacity = "0.5";
+    },
+    onDragEnd: (e) => {
+      setDraggingId(null);
+      e.currentTarget.style.opacity = "1";
+    },
+  };
+
+  const dropHandlers = {
+    onDragOver: (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    },
+    onDrop: (e, targetColumnId) => {
+      e.preventDefault();
+      const taskId = e.dataTransfer.getData("taskId");
+      const sourceColumnId = e.dataTransfer.getData("sourceColumnId");
+
+      if (taskId && sourceColumnId && sourceColumnId !== targetColumnId) {
+        moveTask(taskId, sourceColumnId, targetColumnId);
+      }
+
+      setDraggingId(null);
+    },
+  };
+
+  return {
+    dragHandlers,
+    dropHandlers,
+    draggingId,
+  };
+}
