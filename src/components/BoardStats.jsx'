@@ -1,0 +1,129 @@
+import { useState, useEffect } from "react";
+import { CheckCircle2, AlertCircle, Clock, Target } from "lucide-react";
+
+export default function BoardStats({ board }) {
+  const [stats, setStats] = useState({
+    total: 0,
+    high: 0,
+    medium: 0,
+    low: 0,
+    percentComplete: 0,
+    overdue: 0,
+  });
+
+  useEffect(() => {
+    if (!board || !board.columns) {
+      setStats({
+        total: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        percentComplete: 0,
+        overdue: 0,
+      });
+      return;
+    }
+
+    let total = 0;
+    let high = 0;
+    let medium = 0;
+    let low = 0;
+    let done = 0;
+    let overdue = 0;
+    const now = new Date();
+
+    board.columns.forEach((column) => {
+      if (column.tasks && Array.isArray(column.tasks)) {
+        column.tasks.forEach((task) => {
+          total++;
+
+          // Count by priority
+          if (task.priority === "high") high++;
+          else if (task.priority === "medium") medium++;
+          else if (task.priority === "low") low++;
+
+          // Count done tasks
+          if (column.title?.toLowerCase() === "done" || column.name?.toLowerCase() === "done") {
+            done++;
+          }
+
+          // Count overdue (not in done column and past due date)
+          if (
+            task.due_date &&
+            column.title?.toLowerCase() !== "done" &&
+            column.name?.toLowerCase() !== "done"
+          ) {
+            const dueDate = new Date(task.due_date);
+            if (dueDate < now) {
+              overdue++;
+            }
+          }
+        });
+      }
+    });
+
+    const percentComplete = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    setStats({
+      total,
+      high,
+      medium,
+      low,
+      percentComplete,
+      overdue,
+    });
+  }, [board]);
+
+  return (
+    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
+      <div className="flex items-center gap-8 flex-wrap">
+        {/* Total Tasks */}
+        <div className="flex items-center gap-2">
+          <Target className="w-4 h-4 text-gray-400" />
+          <span className="text-sm text-gray-400">Total:</span>
+          <span className="text-sm font-semibold text-white">{stats.total}</span>
+        </div>
+
+        {/* Priority Breakdown */}
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-400">Priority:</span>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-red-500"></div>
+            <span className="text-sm font-semibold text-red-400">{stats.high}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+            <span className="text-sm font-semibold text-yellow-400">{stats.medium}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+            <span className="text-sm font-semibold text-green-400">{stats.low}</span>
+          </div>
+        </div>
+
+        {/* Completion Percentage */}
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-green-400" />
+          <span className="text-sm text-gray-400">Complete:</span>
+          <span className="text-sm font-semibold text-green-400">{stats.percentComplete}%</span>
+        </div>
+
+        {/* Overdue Count */}
+        {stats.overdue > 0 && (
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-orange-400" />
+            <span className="text-sm text-gray-400">Overdue:</span>
+            <span className="text-sm font-semibold text-orange-400">{stats.overdue}</span>
+          </div>
+        )}
+
+        {stats.overdue === 0 && stats.total > 0 && (
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-gray-500" />
+            <span className="text-sm text-gray-500">No overdue tasks</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
