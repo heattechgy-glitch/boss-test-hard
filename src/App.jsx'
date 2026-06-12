@@ -1,0 +1,93 @@
+import { useState } from "react";
+import { Plus } from "lucide-react";
+
+function App() {
+  const [boards, setBoards] = useState([
+    { id: "board-1", name: "Work", columns: [] },
+    { id: "board-2", name: "Personal", columns: [] }
+  ]);
+  const [activeBoardId, setActiveBoardId] = useState("board-1");
+
+  const activeBoard = boards.find(b => b.id === activeBoardId);
+
+  const handleCreateBoard = () => {
+    const name = prompt("Enter board name:");
+    if (!name) return;
+    const newBoard = {
+      id: `board-${Date.now()}`,
+      name,
+      columns: []
+    };
+    setBoards([...boards, newBoard]);
+    setActiveBoardId(newBoard.id);
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-900 text-gray-100">
+      {/* Sidebar - Board Selector */}
+      <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
+        <div className="p-4 border-b border-gray-700">
+          <h1 className="text-xl font-bold text-sky-500">FlowBoard</h1>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-2">
+            {boards.map(board => (
+              <button
+                key={board.id}
+                onClick={() => setActiveBoardId(board.id)}
+                className={`w-full text-left px-4 py-2 rounded transition-colors ${
+                  activeBoardId === board.id
+                    ? "bg-sky-500 text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                }`}
+              >
+                {board.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-gray-700">
+          <button
+            onClick={handleCreateBoard}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded transition-colors"
+          >
+            <Plus size={20} />
+            Create Board
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content - Kanban Board */}
+      <div className="flex-1 overflow-x-auto">
+        {activeBoard ? (
+          <div className="h-full p-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-100">{activeBoard.name}</h2>
+            </div>
+            <div className="flex gap-4 h-[calc(100%-5rem)]">
+              {activeBoard.columns.length === 0 ? (
+                <div className="flex items-center justify-center w-full">
+                  <p className="text-gray-500 text-lg">No columns yet. Add your first column to get started.</p>
+                </div>
+              ) : (
+                activeBoard.columns.map(column => (
+                  <div key={column.id} className="bg-gray-800 rounded-lg p-4 w-80 flex-shrink-0">
+                    <h3 className="font-semibold text-gray-100 mb-4">{column.name}</h3>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500 text-lg">No board selected</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default App;
